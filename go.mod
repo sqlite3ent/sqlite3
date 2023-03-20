@@ -3,12 +3,12 @@ module github.com/sqlite3ent/sqlite3
 go 1.18
 
 require (
-	entgo.io/ent v0.11.9
+	entgo.io/ent v0.11.10
 	modernc.org/sqlite v1.21.0
 )
 
 require (
-	ariga.io/atlas v0.9.1 // indirect
+	ariga.io/atlas v0.9.2-0.20230303073438-03a4779a6338 // indirect
 	github.com/agext/levenshtein v1.2.1 // indirect
 	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
