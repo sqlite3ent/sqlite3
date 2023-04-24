@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	entgo.io/ent v0.12.2
-	modernc.org/sqlite v1.21.2
+	modernc.org/sqlite v1.22.0
 )
 
 require (
