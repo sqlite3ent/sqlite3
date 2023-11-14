@@ -3,7 +3,7 @@ module github.com/sqlite3ent/sqlite3
 go 1.18
 
 require (
-	entgo.io/ent v0.12.4
+	entgo.io/ent v0.12.5
 	modernc.org/sqlite v1.27.0
 )
 
