@@ -1,6 +1,5 @@
 package sqlite3
 
-import "C"
 import (
 	"database/sql"
 	"database/sql/driver"
@@ -13,14 +12,12 @@ import (
 	"modernc.org/sqlite"
 )
 
-const Version = "v1.21.0"
+const driverName = "sqlite3"
 
-var driverName = "sqlite3"
+const Version = "v1.29.6"
 
 func init() {
-	if driverName != "" {
-		sql.Register(driverName, &SQLiteDriver{})
-	}
+	sql.Register(driverName, &SQLiteDriver{})
 }
 
 type SQLiteDriver struct {
@@ -44,7 +41,7 @@ func (d SQLiteDriver) Open(dsn string) (driver.Conn, error) {
 	secureDelete := "DEFAULT"
 	synchronousMode := "NORMAL"
 	writableSchema := -1
-	//vfsName := ""
+	// vfsName := ""
 	var cacheSize *int64
 
 	pos := strings.IndexRune(dsn, '?')
@@ -325,16 +322,16 @@ func (d SQLiteDriver) Open(dsn string) (driver.Conn, error) {
 			cacheSize = &iv
 		}
 
-		//if val := params.Get("vfs"); val != "" {
+		// if val := params.Get("vfs"); val != "" {
 		//	vfsName = val
-		//}
+		// }
 
 		if !strings.HasPrefix(dsn, "file:") {
 			dsn = dsn[:pos]
 		}
 	}
 
-	//open sqlite3 database
+	// Open sqlite3 database
 	c, err := d.drv.Open(dsn)
 	if err != nil {
 		return nil, err
