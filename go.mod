@@ -5,7 +5,7 @@ go 1.22
 toolchain go1.22.1
 
 require (
-	entgo.io/ent v0.13.1
+	entgo.io/ent v0.14.0
 	modernc.org/sqlite v1.31.1
 )
 
