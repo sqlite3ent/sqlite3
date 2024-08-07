@@ -14,7 +14,7 @@ import (
 
 const driverName = "sqlite3"
 
-const Version = "v1.29.6"
+const Version = "v1.31.1"
 
 func init() {
 	sql.Register(driverName, &SQLiteDriver{})
