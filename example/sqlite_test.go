@@ -3,29 +3,33 @@ package example
 import (
 	"context"
 	"fmt"
-	"testing"
+	"os"
 
 	_ "github.com/sqlite3ent/sqlite3"
 
 	"github.com/sqlite3ent/sqlite3/example/ent"
 )
 
-func TestSqlite3(t *testing.T) {
+func ExampleSqlite3Ent() {
 	client, err := ent.Open("sqlite3", "file:testdb?cache=shared&_journal=WAL&_fk=1")
 	if err != nil {
-		t.Fatal(err)
+		panic(err)
 	}
+	defer func() {
+		client.Close()
+		os.Remove("testdb")
+	}()
 	ctx := context.Background()
 	err = client.Schema.Create(ctx)
 	if err != nil {
-		t.Fatal(err)
+		panic(err)
 	}
 	hub, err := client.Group.
 		Create().
 		SetName("Github").
 		Save(ctx)
 	if err != nil {
-		t.Fatal(err)
+		panic(err)
 	}
 	// Create the admin of the group.
 	// Unlike `Save`, `SaveX` panics if an error occurs.
