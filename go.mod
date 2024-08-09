@@ -4,7 +4,7 @@ go 1.22
 
 toolchain go1.22.1
 
-require modernc.org/sqlite v1.31.1
+require modernc.org/sqlite v1.32.0
 
 require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
