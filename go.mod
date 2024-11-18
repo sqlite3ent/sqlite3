@@ -2,8 +2,6 @@ module github.com/sqlite3ent/sqlite3
 
 go 1.22.0
 
-toolchain go1.23.3
-
 require modernc.org/sqlite v1.34.1
 
 require (
