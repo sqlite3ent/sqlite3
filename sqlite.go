@@ -1,5 +1,7 @@
+// Package sqlite3 implements the functions, types, and interfaces for the module.
 package sqlite3
 
+import "C"
 import (
 	"database/sql"
 	"database/sql/driver"
@@ -12,20 +14,33 @@ import (
 	"modernc.org/sqlite"
 )
 
-const driverName = "sqlite3"
-
-const Version = "v1.31.1"
+// This variable can be replaced with -ldflags like below:
+// go build -ldflags="-X 'github.com/sqlite3ent/sqlite3.driverName=my-sqlite3'"
+var driverName = "sqlite3"
 
 func init() {
-	sql.Register(driverName, &SQLiteDriver{})
+	if driverName != "" {
+		sql.Register(driverName, &SQLiteDriver{})
+	}
 }
 
 type SQLiteDriver struct {
 	drv sqlite.Driver
 }
 
-func (d SQLiteDriver) Open(dsn string) (driver.Conn, error) {
+func (d *SQLiteDriver) Open(dsn string) (driver.Conn, error) {
 	var pkey string
+
+	// COMMENT_FLAG: don't support
+	// Options
+	//var loc *time.Location
+	//authCreate := false
+	//authUser := ""
+	//authPass := ""
+	//authCrypt := ""
+	//authSalt := ""
+	//mutex := C.int(C.SQLITE_OPEN_FULLMUTEX)
+	//txlock := "BEGIN"
 
 	// PRAGMA's
 	autoVacuum := -1
@@ -41,7 +56,7 @@ func (d SQLiteDriver) Open(dsn string) (driver.Conn, error) {
 	secureDelete := "DEFAULT"
 	synchronousMode := "NORMAL"
 	writableSchema := -1
-	// vfsName := ""
+	//vfsName := ""
 	var cacheSize *int64
 
 	pos := strings.IndexRune(dsn, '?')
@@ -50,6 +65,66 @@ func (d SQLiteDriver) Open(dsn string) (driver.Conn, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		// COMMENT_FLAG: don't support
+		// Authentication
+		//if _, ok := params["_auth"]; ok {
+		//	authCreate = true
+		//}
+		//if val := params.Get("_auth_user"); val != "" {
+		//	authUser = val
+		//}
+		//if val := params.Get("_auth_pass"); val != "" {
+		//	authPass = val
+		//}
+		//if val := params.Get("_auth_crypt"); val != "" {
+		//	authCrypt = val
+		//}
+		//if val := params.Get("_auth_salt"); val != "" {
+		//	authSalt = val
+		//}
+
+		// COMMENT_FLAG: don't support
+		// _loc
+		//if val := params.Get("_loc"); val != "" {
+		//	switch strings.ToLower(val) {
+		//	case "auto":
+		//		loc = time.Local
+		//	default:
+		//		loc, err = time.LoadLocation(val)
+		//		if err != nil {
+		//			return nil, fmt.Errorf("invalid _loc: %v: %v", val, err)
+		//		}
+		//	}
+		//}
+
+		// COMMENT_FLAG: only sqlite3.SQLITE_OPEN_FULLMUTEX
+		// _mutex
+		//if val := params.Get("_mutex"); val != "" {
+		//	switch strings.ToLower(val) {
+		//	case "no":
+		//		mutex = C.SQLITE_OPEN_NOMUTEX
+		//	case "full":
+		//		mutex = C.SQLITE_OPEN_FULLMUTEX
+		//	default:
+		//		return nil, fmt.Errorf("invalid _mutex: %v", val)
+		//	}
+		//}
+
+		// COMMENT_FLAG: do in sqlite3.Open()
+		// _txlock
+		//if val := params.Get("_txlock"); val != "" {
+		//	switch strings.ToLower(val) {
+		//	case "immediate":
+		//		txlock = "BEGIN IMMEDIATE"
+		//	case "exclusive":
+		//		txlock = "BEGIN EXCLUSIVE"
+		//	case "deferred":
+		//		txlock = "BEGIN"
+		//	default:
+		//		return nil, fmt.Errorf("invalid _txlock: %v", val)
+		//	}
+		//}
 
 		// Auto Vacuum (_vacuum)
 		//
@@ -322,13 +397,13 @@ func (d SQLiteDriver) Open(dsn string) (driver.Conn, error) {
 			cacheSize = &iv
 		}
 
-		// if val := params.Get("vfs"); val != "" {
+		//if val := params.Get("vfs"); val != "" {
 		//	vfsName = val
-		// }
-
-		if !strings.HasPrefix(dsn, "file:") {
-			dsn = dsn[:pos]
-		}
+		//}
+		//
+		//if !strings.HasPrefix(dsn, "file:") {
+		//	dsn = dsn[:pos]
+		//}
 	}
 
 	// Open sqlite3 database
@@ -337,7 +412,7 @@ func (d SQLiteDriver) Open(dsn string) (driver.Conn, error) {
 		return nil, err
 	}
 
-	conn, ok := c.(SQLiteConn)
+	conn, ok := c.(sqliteConn)
 	if !ok {
 		return c, nil
 	}
@@ -349,7 +424,7 @@ func (d SQLiteDriver) Open(dsn string) (driver.Conn, error) {
 
 	// Busy timeout
 	if err := exec(fmt.Sprintf("PRAGMA busy_timeout = %d;", busyTimeout)); err != nil {
-		conn.Close()
+		_ = conn.Close()
 		return nil, err
 	}
 
@@ -361,7 +436,7 @@ func (d SQLiteDriver) Open(dsn string) (driver.Conn, error) {
 	// and activating user authentication creates the internal table `sqlite_user`.
 	if autoVacuum > -1 {
 		if err := exec(fmt.Sprintf("PRAGMA auto_vacuum = %d;", autoVacuum)); err != nil {
-			conn.Close()
+			_ = conn.Close()
 			return nil, err
 		}
 	}
@@ -369,7 +444,7 @@ func (d SQLiteDriver) Open(dsn string) (driver.Conn, error) {
 	// Case Sensitive LIKE
 	if caseSensitiveLike > -1 {
 		if err := exec(fmt.Sprintf("PRAGMA case_sensitive_like = %d;", caseSensitiveLike)); err != nil {
-			conn.Close()
+			_ = conn.Close()
 			return nil, err
 		}
 	}
@@ -377,7 +452,7 @@ func (d SQLiteDriver) Open(dsn string) (driver.Conn, error) {
 	// Defer Foreign Keys
 	if deferForeignKeys > -1 {
 		if err := exec(fmt.Sprintf("PRAGMA defer_foreign_keys = %d;", deferForeignKeys)); err != nil {
-			conn.Close()
+			_ = conn.Close()
 			return nil, err
 		}
 	}
@@ -385,7 +460,7 @@ func (d SQLiteDriver) Open(dsn string) (driver.Conn, error) {
 	// Foreign Keys
 	if foreignKeys > -1 {
 		if err := exec(fmt.Sprintf("PRAGMA foreign_keys = %d;", foreignKeys)); err != nil {
-			conn.Close()
+			_ = conn.Close()
 			return nil, err
 		}
 	}
@@ -393,7 +468,7 @@ func (d SQLiteDriver) Open(dsn string) (driver.Conn, error) {
 	// Ignore CHECK Constraints
 	if ignoreCheckConstraints > -1 {
 		if err := exec(fmt.Sprintf("PRAGMA ignore_check_constraints = %d;", ignoreCheckConstraints)); err != nil {
-			conn.Close()
+			_ = conn.Close()
 			return nil, err
 		}
 	}
@@ -401,7 +476,7 @@ func (d SQLiteDriver) Open(dsn string) (driver.Conn, error) {
 	// Journal Mode
 	if journalMode != "" {
 		if err := exec(fmt.Sprintf("PRAGMA journal_mode = %s;", journalMode)); err != nil {
-			conn.Close()
+			_ = conn.Close()
 			return nil, err
 		}
 	}
@@ -410,14 +485,14 @@ func (d SQLiteDriver) Open(dsn string) (driver.Conn, error) {
 	// Because the default is NORMAL and this is not changed in this package
 	// by using the compile time SQLITE_DEFAULT_LOCKING_MODE this PRAGMA can always be executed
 	if err := exec(fmt.Sprintf("PRAGMA locking_mode = %s;", lockingMode)); err != nil {
-		conn.Close()
+		_ = conn.Close()
 		return nil, err
 	}
 
 	// Query Only
 	if queryOnly > -1 {
 		if err := exec(fmt.Sprintf("PRAGMA query_only = %d;", queryOnly)); err != nil {
-			conn.Close()
+			_ = conn.Close()
 			return nil, err
 		}
 	}
@@ -425,7 +500,7 @@ func (d SQLiteDriver) Open(dsn string) (driver.Conn, error) {
 	// Recursive Triggers
 	if recursiveTriggers > -1 {
 		if err := exec(fmt.Sprintf("PRAGMA recursive_triggers = %d;", recursiveTriggers)); err != nil {
-			conn.Close()
+			_ = conn.Close()
 			return nil, err
 		}
 	}
@@ -437,7 +512,7 @@ func (d SQLiteDriver) Open(dsn string) (driver.Conn, error) {
 	// you can compile with secure_delete 'ON' and disable it for a specific database connection.
 	if secureDelete != "DEFAULT" {
 		if err := exec(fmt.Sprintf("PRAGMA secure_delete = %s;", secureDelete)); err != nil {
-			conn.Close()
+			_ = conn.Close()
 			return nil, err
 		}
 	}
@@ -446,14 +521,14 @@ func (d SQLiteDriver) Open(dsn string) (driver.Conn, error) {
 	//
 	// Because default is NORMAL this statement is always executed
 	if err := exec(fmt.Sprintf("PRAGMA synchronous = %s;", synchronousMode)); err != nil {
-		conn.Close()
+		_ = conn.Close()
 		return nil, err
 	}
 
 	// Writable Schema
 	if writableSchema > -1 {
 		if err := exec(fmt.Sprintf("PRAGMA writable_schema = %d;", writableSchema)); err != nil {
-			conn.Close()
+			_ = conn.Close()
 			return nil, err
 		}
 	}
@@ -461,11 +536,25 @@ func (d SQLiteDriver) Open(dsn string) (driver.Conn, error) {
 	// Cache Size
 	if cacheSize != nil {
 		if err := exec(fmt.Sprintf("PRAGMA cache_size = %d;", *cacheSize)); err != nil {
-			conn.Close()
+			_ = conn.Close()
 			return nil, err
 		}
 	}
 
-	runtime.SetFinalizer(c, SQLiteConn.Close)
+	// COMMENT_FLAG: never use this
+	//if len(d.Extensions) > 0 {
+	//	if err := conn.loadExtensions(d.Extensions); err != nil {
+	//		conn.Close()
+	//		return nil, err
+	//	}
+	//}
+	//
+	//if d.ConnectHook != nil {
+	//	if err := d.ConnectHook(conn); err != nil {
+	//		conn.Close()
+	//		return nil, err
+	//	}
+	//}
+	runtime.SetFinalizer(conn, sqliteConn.Close)
 	return c, nil
 }
