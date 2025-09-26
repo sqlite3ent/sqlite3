@@ -1,0 +1,35 @@
+name: Dependabot Automerge
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+jobs:
+  automerge:
+    # 仅当 PR 是由 dependabot 创建时才运行
+    if: github.actor == '''dependabot[bot]'''
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '''1.22''' # 请根据您的项目调整 Go 版本
+
+      - name: Run tests
+        run: go test -v ./...
+
+      - name: Enable automerge for Dependabot PRs
+        if: success()
+        run: gh pr merge --auto --merge "$PR_URL"
+        env:
+          PR_URL: ${{github.event.pull_request.html_url}}
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}

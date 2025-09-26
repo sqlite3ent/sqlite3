@@ -1,0 +1,40 @@
+name: Release on merge
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  tag-and-release:
+    # 仅当提交者是 dependabot 且提交信息包含 'modernc.org/sqlite' 时才运行
+    if: github.actor == 'dependabot[bot]' && contains(github.event.head_commit.message, 'modernc.org/sqlite')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # 需要权限来创建和推送 tag
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 获取所有历史记录和 tags
+
+      - name: Get sqlite version from go.mod
+        id: get_version
+        run: |
+          VERSION=$(grep 'modernc.org/sqlite' go.mod | awk '{print $2}')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create and Push Git Tag
+        run: |
+          TAG_NAME="${{ steps.get_version.outputs.version }}"
+          echo "Proposed tag: $TAG_NAME"
+          # 检查 tag 是否已存在
+          if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
+            echo "Tag $TAG_NAME already exists. Skipping."
+          else
+            echo "Creating tag $TAG_NAME"
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git tag "$TAG_NAME"
+            git push origin "$TAG_NAME"
+          fi
