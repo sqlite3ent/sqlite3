@@ -1,34 +1,44 @@
-name: Release on merge
+name: Release on merge or manual dispatch
 
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'The version tag to create (e.g., v1.40.0)'
+        required: true
 
 jobs:
   tag-and-release:
-    # 仅当提交者是 dependabot 且提交信息包含 'modernc.org/sqlite' 时才运行
-    if: github.actor == 'dependabot[bot]' && contains(github.event.head_commit.message, 'modernc.org/sqlite')
+    # Run on automated push from Dependabot OR on manual dispatch
+    if: (github.event_name == 'push' && github.actor == 'dependabot[bot]' && contains(github.event.head_commit.message, 'modernc.org/sqlite')) || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
-      contents: write # 需要权限来创建和推送 tag
+      contents: write # Needed to create and push tags
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # 获取所有历史记录和 tags
+          fetch-depth: 0 # Needed to check for existing tags
 
-      - name: Get sqlite version from go.mod
+      - name: Determine Version
         id: get_version
         run: |
-          VERSION=$(grep 'modernc.org/sqlite' go.mod | awk '{print $2}')
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION=$(grep 'modernc.org/sqlite' go.mod | awk '{print $2}')
+          fi
+          echo "Using version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Create and Push Git Tag
         run: |
           TAG_NAME="${{ steps.get_version.outputs.version }}"
           echo "Proposed tag: $TAG_NAME"
-          # 检查 tag 是否已存在
+          # Check if tag already exists
           if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
             echo "Tag $TAG_NAME already exists. Skipping."
           else
