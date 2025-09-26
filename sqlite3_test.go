@@ -4,86 +4,127 @@ import (
 	"context"
 	"database/sql"
 	"os"
+	"regexp"
 	"testing"
-
-	"github.com/stretchr/testify/require"
 )
 
 func TestDriver(t *testing.T) {
 	// Create a temporary file for the database
 	tmpfile, err := os.CreateTemp("", "testdb-*.db")
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer os.Remove(tmpfile.Name())
 	defer tmpfile.Close()
 
 	// Test opening a database
 	db, err := sql.Open("sqlite3", tmpfile.Name())
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer db.Close()
 
 	// Test basic SQL operations
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS test (id INTEGER PRIMARY KEY, name TEXT)`)
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Test insert
 	result, err := db.Exec(`INSERT INTO test (name) VALUES (?)`, "test")
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Check rows affected
 	affected, err := result.RowsAffected()
-	require.NoError(t, err)
-	require.Equal(t, int64(1), affected)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if affected != int64(1) {
+		t.Fatalf("expected 1 row affected, but got %d", affected)
+	}
 
 	// Test query
 	var count int
 	err = db.QueryRow(`SELECT COUNT(*) FROM test`).Scan(&count)
-	require.NoError(t, err)
-	require.Equal(t, 1, count)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 {
+		t.Fatalf("expected count to be 1, but got %d", count)
+	}
 }
 
 func TestDriverWithContext(t *testing.T) {
 	// Create a temporary file for the database
 	tmpfile, err := os.CreateTemp("", "testdb-ctx-*.db")
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer os.Remove(tmpfile.Name())
 	defer tmpfile.Close()
 
 	// Test opening a database with context
 	ctx := context.Background()
 	db, err := sql.Open("sqlite3", tmpfile.Name())
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer db.Close()
 
 	// Create table with context
 	_, err = db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS test_ctx (id INTEGER PRIMARY KEY, name TEXT)`)
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Test transaction with context
 	tx, err := db.BeginTx(ctx, nil)
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	_, err = tx.ExecContext(ctx, `INSERT INTO test_ctx (name) VALUES (?)`, "test")
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	err = tx.Commit()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Verify data with context
 	var name string
 	err = db.QueryRowContext(ctx, `SELECT name FROM test_ctx WHERE id = ?`, 1).Scan(&name)
-	require.NoError(t, err)
-	require.Equal(t, "test", name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if name != "test" {
+		t.Fatalf("expected name to be 'test', but got %q", name)
+	}
 }
 
 func TestVersion(t *testing.T) {
 	// Test that the version is set and matches the expected format
-	require.Regexp(t, `^v\d+\.\d+\.\d+$`, Version, "Version should be in semver format (e.g., v1.0.0)")
+	pattern := `^v\d+\.\d+\.\d+$`
+	msg := "Version should be in semver format (e.g., v1.0.0)"
+	matched, err := regexp.MatchString(pattern, Version)
+	if err != nil {
+		t.Fatalf("failed to compile regexp: %v", err)
+	}
+	if !matched {
+		t.Fatalf("Version %q does not match pattern %q: %s", Version, pattern, msg)
+	}
 }
 
 func TestSQLiteDriver_Open(t *testing.T) {
 	// Create a temporary file for testing
 	tmpfile, err := os.CreateTemp("", "testdb-*.db")
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	tmpfile.Close()
 	defer os.Remove(tmpfile.Name())
 
