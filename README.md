@@ -26,6 +26,12 @@ This package serves as a **database driver adapter** for Go's `ent` entity frame
 
 Current version: v1.39.0 (This will be updated automatically upon new releases)
 
+## Installation
+
+```bash
+go get github.com/sqlite3ent/sqlite3@latest
+```
+
 ## How to use
 
 Using this package in your `ent` project is straightforward, involving two main steps:

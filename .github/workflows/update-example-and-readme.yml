@@ -1,0 +1,92 @@
+name: Update Example and README
+
+on:
+  release:
+    types: [published]
+    paths:
+      - 'go.mod'
+      - 'go.sum'
+    paths-ignore:
+      - 'example/**'
+      - 'README.md'
+      - 'version.go'
+
+jobs:
+  update-readme:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed to commit and push changes
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Get modernc/sqlite version
+        id: version
+        run: |
+          VERSION=$(grep 'modernc.org/sqlite' go.mod | awk '{print $2}' | sed 's/^v//')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version to use: $VERSION"
+
+      - name: Update version.go
+        run: |
+          echo "Updating version.go to ${{ steps.version.outputs.version }}"
+          sed -i "s/Version = \".*\"/Version = \"${{ steps.version.outputs.version }}\"/g" version.go
+          if ! git diff --quiet version.go; then
+            git add version.go
+            git -c user.name='github-actions[bot]' \
+                -c user.email='github-actions[bot]@users.noreply.github.com' \
+                commit -m "chore: update version to v${{ steps.version.outputs.version }}"
+            echo "version_updated=true" >> $GITHUB_ENV
+          else
+            echo "No changes in version.go"
+            echo "version_updated=false" >> $GITHUB_ENV
+          fi
+
+      - name: Update example dependencies
+        run: |
+          echo "Updating example to version ${{ steps.version.outputs.version }}"
+          cd example
+          go mod edit -require=github.com/sqlite3ent/sqlite3@v${{ steps.version.outputs.version }}
+          go mod tidy
+          cd ..
+          if ! git diff --quiet example/; then
+            git add example/go.mod example/go.sum
+            git -c user.name='github-actions[bot]' \
+                -c user.email='github-actions[bot]@users.noreply.github.com' \
+                commit -m "chore(example): update sqlite3 to v${{ steps.version.outputs.version }}"
+            echo "example_updated=true" >> $GITHUB_ENV
+          else
+            echo "No changes in example dependencies"
+            echo "example_updated=false" >> $GITHUB_ENV
+          fi
+
+      - name: Update README version
+        run: |
+          echo "Updating README.md to version ${{ steps.version.outputs.version }}"
+          sed -i "s/Current version: v[0-9.]*/Current version: v${{ steps.version.outputs.version }}/g" README.md
+          if ! git diff --quiet README.md; then
+          git add README.md
+          git -c user.name='github-actions[bot]' \
+          -c user.email='github-actions[bot]@users.noreply.github.com' \
+          commit -m "docs: update version in README to v${{ steps.version.outputs.version }}"
+          echo "readme_updated=true" >> $GITHUB_ENV
+          else
+          echo "No changes in README"
+          echo "readme_updated=false" >> $GITHUB_ENV
+          fi
+
+      - name: Get release tag
+        id: get_tag
+        run: echo "TAG=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+
+      - name: Push changes
+        if: env.version_updated == 'true' || env.example_updated == 'true' || env.readme_updated == 'true'
+        run: |
+          echo "Creating tag v${{ steps.version.outputs.version }}"
+          git tag -a "v${{ steps.version.outputs.version }}" -m "Release v${{ steps.version.outputs.version }}"
+          git push origin "v${{ steps.version.outputs.version }}"
