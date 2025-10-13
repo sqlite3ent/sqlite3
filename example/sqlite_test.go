@@ -10,7 +10,7 @@ import (
 	"github.com/sqlite3ent/sqlite3/example/ent"
 )
 
-func ExampleSqlite3Ent() {
+func Example() {
 	client, err := ent.Open("sqlite3", "file:testdb?cache=shared&_journal=WAL&_fk=1")
 	if err != nil {
 		panic(err)

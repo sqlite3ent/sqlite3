@@ -6,7 +6,7 @@ replace github.com/sqlite3ent/sqlite3 => ../
 
 require (
 	entgo.io/ent v0.14.5
-	github.com/sqlite3ent/sqlite3 v1.37.1
+	github.com/sqlite3ent/sqlite3 v1.39.0
 )
 
 require (
