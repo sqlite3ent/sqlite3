@@ -6,11 +6,12 @@ on:
       - opened
       - synchronize
       - reopened
+    branches:
+      - main
 
 jobs:
   automerge:
-    # 仅当 PR 是由 dependabot 创建时才运行
-    if: github.actor == 'dependabot[bot]'
+    if: github.actor == 'dependabot[bot]' || github.actor == 'dependabot'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
