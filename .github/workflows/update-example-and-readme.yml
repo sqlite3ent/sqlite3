@@ -33,7 +33,7 @@ jobs:
       - name: Update version.go
         run: |
           echo "Updating version.go to ${{ steps.version.outputs.version }}"
-          sed -i "s/Version = \".*\"/Version = \"${{ steps.version.outputs.version }}\"/g" version.go
+          sed -i "s|Version = \".*\"|Version = \"${{ steps.version.outputs.version }}\"|g" version.go
           if ! git diff --quiet version.go; then
             git add version.go
             git -c user.name='github-actions[bot]' \
