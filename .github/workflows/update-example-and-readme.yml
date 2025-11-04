@@ -3,13 +3,11 @@ name: Update Example and README
 on:
   release:
     types: [published]
-    paths:
-      - 'go.mod'
-      - 'go.sum'
     paths-ignore:
       - 'example/**'
       - 'README.md'
       - 'version.go'
+      - '**/!(*.go|go.mod|go.sum)'
 
 jobs:
   update-readme:
