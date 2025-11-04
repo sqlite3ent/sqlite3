@@ -6,7 +6,7 @@ replace github.com/sqlite3ent/sqlite3 => ../
 
 require (
 	entgo.io/ent v0.14.5
-	github.com/sqlite3ent/sqlite3 v1.39.0
+	github.com/sqlite3ent/sqlite3 v1.40.0
 )
 
 require (
@@ -32,8 +32,8 @@ require (
 	golang.org/x/text v0.25.0 // indirect
 	golang.org/x/tools v0.37.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	modernc.org/libc v1.66.9 // indirect
+	modernc.org/libc v1.66.10 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
-	modernc.org/sqlite v1.39.0 // indirect
+	modernc.org/sqlite v1.40.0 // indirect
 )
