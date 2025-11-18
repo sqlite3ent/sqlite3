@@ -140,7 +140,7 @@ func TestSQLiteDriver_Open(t *testing.T) {
 		},
 		{
 			name:    "invalid dsn",
-			dsn:     "invalid:dsn:format",
+			dsn:     "file://invalid?mode=invalid&cache=invalid",
 			wantErr: true,
 		},
 	}
