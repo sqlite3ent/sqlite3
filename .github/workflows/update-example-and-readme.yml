@@ -7,7 +7,9 @@ on:
       - 'example/**'
       - 'README.md'
       - 'version.go'
-      - '**/!(*.go|go.mod|go.sum)'
+      - 'go.mod'
+      - 'go.sum'
+      - '**/!(*.go)'
 
 jobs:
   update-readme:

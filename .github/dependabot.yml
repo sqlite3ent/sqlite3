@@ -1,6 +1,16 @@
 version: 2
 updates:
-  - package-ecosystem: gomod
-    directory: /
+  - package-ecosystem: "gomod"
+    directory: "/"
     schedule:
-      interval: daily
+      interval: "daily"
+    labels:
+      - "dependencies"
+    assignees:
+      - "dependabot"
+    reviewers:
+      - "maintainers"
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(dev-deps)"
+      include: "scope"
