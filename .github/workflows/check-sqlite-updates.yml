@@ -8,13 +8,22 @@ on:
       - 'go.mod'
       - 'go.sum'
     branches: [ main ]
+  # 手动触发
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to process'
+        required: true
+        default: 'main'
 
 jobs:
   process-update:
-    # 仅处理 Dependabot 的 PR 且包含 modernc.org/sqlite 更新
+    # 处理 Dependabot 的 PR（包含 modernc.org/sqlite 更新）或手动触发
     if: |
-      github.actor == 'dependabot[bot]' && 
-      contains(github.event.pull_request.title, 'modernc.org/sqlite')
+      (github.event_name == 'pull_request_target' && 
+       github.actor == 'dependabot[bot]' && 
+       contains(github.event.pull_request.title, 'modernc.org/sqlite')) ||
+      github.event_name == 'workflow_dispatch'
     
     runs-on: ubuntu-latest
     permissions:
@@ -22,10 +31,18 @@ jobs:
       pull-requests: write
     
     steps:
-      - name: Checkout code
+      - name: Checkout code - PR触发
+        if: github.event_name == 'pull_request_target'
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+      
+      - name: Checkout code - 手动触发
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+          fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@v4
@@ -71,6 +88,7 @@ jobs:
           fi
 
       - name: Update PR title and body
+        if: github.event_name == 'pull_request_target'
         uses: actions/github-script@v7
         with:
           script: |

@@ -24,7 +24,7 @@ This package serves as a **database driver adapter** for Go's `ent` entity frame
 
 ## Version
 
-Current version: v1.39.0 (This will be updated automatically upon new releases)
+Current version: v1.41.0 (This will be updated automatically upon new releases)
 
 ## Installation
 
