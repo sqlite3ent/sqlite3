@@ -52,21 +52,30 @@ jobs:
       - name: Get modernc/sqlite version
         id: version
         run: |
-          VERSION=$(grep 'modernc.org/sqlite' go.mod | awk '{print $2}')
+          # 使用 go list 命令获取版本，更可靠的方式
+          VERSION=$(go list -m -f '{{.Version}}' modernc.org/sqlite)
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "Version to use: ${VERSION}"
 
       - name: Update version.go
         run: |
-          VERSION=$(echo "${{ steps.version.outputs.version }}" | sed 's/^v//')
-          sed -i "s|Version = ".*"|Version = "${VERSION}"|g" version.go
+          # 保留完整的版本号（包括 v 前缀）
+          FULL_VERSION=${{ steps.version.outputs.version }}
+          
+          # 确保版本号格式正确
+          if [[ "$FULL_VERSION" != v* ]]; then
+            FULL_VERSION="v$FULL_VERSION"
+          fi
+          
+          # 更新 version.go 文件，确保引号正确
+          sed -i "s|const Version = .*|const Version = \"${FULL_VERSION}\"|g" version.go
           
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           
           git add version.go
           if ! git diff --staged --quiet; then
-            git commit -m "chore: update version to ${VERSION}"
+            git commit -m "chore: update version to ${FULL_VERSION}"
             git push
           else
             echo "No changes in version.go"
