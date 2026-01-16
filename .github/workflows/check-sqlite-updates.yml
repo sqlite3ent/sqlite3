@@ -42,7 +42,7 @@ jobs:
       - name: Update version.go
         run: |
           VERSION=$(echo "${{ steps.version.outputs.version }}" | sed 's/^v//')
-          sed -i "s/Version = \".*\"/Version = \"${VERSION}\"/" version.go
+          sed -i "s|Version = ".*"|Version = "${VERSION}"|g" version.go
           
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
