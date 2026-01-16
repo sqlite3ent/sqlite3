@@ -1,92 +1,102 @@
-name: Update Example and README
+name: Process SQLite Update
 
 on:
-  release:
-    types: [published]
-    paths-ignore:
-      - 'example/**'
-      - 'README.md'
-      - 'version.go'
+  # 由 Dependabot 的 PR 触发
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+    paths:
       - 'go.mod'
       - 'go.sum'
-      - '**/!(*.go)'
+    branches: [ main ]
+  # 手动触发
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to process'
+        required: true
+        default: 'main'
 
 jobs:
-  update-readme:
+  process-update:
+    # 处理 Dependabot 的 PR（包含 modernc.org/sqlite 更新）或手动触发
+    if: |
+      (github.event_name == 'pull_request_target' && 
+       github.actor == 'dependabot[bot]' && 
+       contains(github.event.pull_request.title, 'modernc.org/sqlite')) ||
+      github.event_name == 'workflow_dispatch'
+    
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Needed to commit and push changes
+      contents: write
+      pull-requests: write
+    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
+      - name: Checkout code - PR触发
+        if: github.event_name == 'pull_request_target'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      
+      - name: Checkout code - 手动触发
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+          fetch-depth: 0
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v4
         with:
-          go-version-file: go.mod
+          go-version: 1.21
 
       - name: Get modernc/sqlite version
         id: version
         run: |
-          VERSION=$(grep 'modernc.org/sqlite' go.mod | awk '{print $2}' | sed 's/^v//')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Version to use: $VERSION"
+          # 使用 go list 命令获取版本，更可靠的方式
+          VERSION=$(go list -m -f '{{.Version}}' modernc.org/sqlite)
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Version to use: ${VERSION}"
 
       - name: Update version.go
         run: |
-          echo "Updating version.go to ${{ steps.version.outputs.version }}"
-          sed -i "s|Version = \".*\"|Version = \"${{ steps.version.outputs.version }}\"|g" version.go
-          if ! git diff --quiet version.go; then
-            git add version.go
-            git -c user.name='github-actions[bot]' \
-                -c user.email='github-actions[bot]@users.noreply.github.com' \
-                commit -m "chore: update version to v${{ steps.version.outputs.version }}"
-            echo "version_updated=true" >> $GITHUB_ENV
+          VERSION=$(echo "${{ steps.version.outputs.version }}" | sed 's/^v//')
+          sed -i "s|Version = ".*"|Version = "${VERSION}"|g" version.go
+          
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          
+          git add version.go
+          if ! git diff --staged --quiet; then
+            git commit -m "chore: update version to ${VERSION}"
+            git push
           else
             echo "No changes in version.go"
-            echo "version_updated=false" >> $GITHUB_ENV
           fi
 
       - name: Update example dependencies
         run: |
-          echo "Updating example to version ${{ steps.version.outputs.version }}"
           cd example
-          go mod edit -require=github.com/sqlite3ent/sqlite3@v${{ steps.version.outputs.version }}
+          go get github.com/sqlite3ent/sqlite3@${{ steps.version.outputs.version }}
           go mod tidy
           cd ..
-          if ! git diff --quiet example/; then
-            git add example/go.mod example/go.sum
-            git -c user.name='github-actions[bot]' \
-                -c user.email='github-actions[bot]@users.noreply.github.com' \
-                commit -m "chore(example): update sqlite3 to v${{ steps.version.outputs.version }}"
-            echo "example_updated=true" >> $GITHUB_ENV
+          
+          git add example/go.mod example/go.sum
+          if ! git diff --staged --quiet; then
+            git commit -m "chore(example): update sqlite3 to ${{ steps.version.outputs.version }}"
+            git push
           else
             echo "No changes in example dependencies"
-            echo "example_updated=false" >> $GITHUB_ENV
           fi
 
-      - name: Update README version
-        run: |
-          echo "Updating README.md to version ${{ steps.version.outputs.version }}"
-          sed -i "s/Current version: v[0-9.]*/Current version: v${{ steps.version.outputs.version }}/g" README.md
-          if ! git diff --quiet README.md; then
-          git add README.md
-          git -c user.name='github-actions[bot]' \
-          -c user.email='github-actions[bot]@users.noreply.github.com' \
-          commit -m "docs: update version in README to v${{ steps.version.outputs.version }}"
-          echo "readme_updated=true" >> $GITHUB_ENV
-          else
-          echo "No changes in README"
-          echo "readme_updated=false" >> $GITHUB_ENV
-          fi
-
-      - name: Get release tag
-        id: get_tag
-        run: echo "TAG=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
-
-      - name: Push changes
-        if: env.version_updated == 'true' || env.example_updated == 'true' || env.readme_updated == 'true'
-        run: |
-          echo "Creating tag v${{ steps.version.outputs.version }}"
-          git tag -a "v${{ steps.version.outputs.version }}" -m "Release v${{ steps.version.outputs.version }}"
-          git push origin "v${{ steps.version.outputs.version }}"
+      - name: Update PR title and body
+        if: github.event_name == 'pull_request_target'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: ${{ github.event.pull_request.number }},
+              title: `chore: update modernc/sqlite to ${{ steps.version.outputs.version }}`,
+              body: `This PR updates modernc.org/sqlite to ${{ steps.version.outputs.version }}\n\n- [x] Updated go.mod\n- [x] Updated version.go\n- [x] Updated example dependencies\n\nAuto-generated by GitHub Actions.`
+            })
