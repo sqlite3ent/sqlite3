@@ -3,14 +3,13 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+      day: "monday"
     labels:
       - "dependencies"
-    assignees:
-      - "dependabot"
     reviewers:
       - "maintainers"
     commit-message:
-      prefix: "chore"
-      prefix-development: "chore"
+      prefix: "build"
+      prefix-development: "build"
       include: "scope"
