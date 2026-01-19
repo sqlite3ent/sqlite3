@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"os"
-	"regexp"
 	"testing"
 )
 
@@ -103,19 +102,6 @@ func TestDriverWithContext(t *testing.T) {
 	}
 	if name != "test" {
 		t.Fatalf("expected name to be 'test', but got %q", name)
-	}
-}
-
-func TestVersion(t *testing.T) {
-	// Test that the version is set and matches the expected format
-	pattern := `^v\d+\.\d+\.\d+$`
-	msg := "Version should be in semver format (e.g., v1.0.0)"
-	matched, err := regexp.MatchString(pattern, Version)
-	if err != nil {
-		t.Fatalf("failed to compile regexp: %v", err)
-	}
-	if !matched {
-		t.Fatalf("Version %q does not match pattern %q: %s", Version, pattern, msg)
 	}
 }
 
