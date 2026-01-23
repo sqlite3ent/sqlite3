@@ -2,7 +2,7 @@ module github.com/sqlite3ent/sqlite3
 
 go 1.24.0
 
-require modernc.org/sqlite v1.42.0
+require modernc.org/sqlite v1.43.0
 
 require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
