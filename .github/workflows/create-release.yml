@@ -5,11 +5,11 @@ on:
     branches:
       - main
     paths:
-      - 'version.go'
+      - 'go.mod'
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to release (e.g., v1.0.0)'
+        description: 'Version to release (e.g., v1.42.0)'
         required: true
 
 jobs:
@@ -24,13 +24,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get version from version.go
+      - name: Get version from go.mod
         id: version
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             VERSION="${{ github.event.inputs.version }}"
           else
-            VERSION=$(grep -oP 'const Version = "\K[^"]+' version.go)
+            VERSION=$(grep -oP 'modernc.org/sqlite v\K[0-9]+\.[0-9]+\.[0-9]+' go.mod)
           fi
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "Version: ${VERSION}"
