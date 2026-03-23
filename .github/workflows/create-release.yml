@@ -30,7 +30,8 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             VERSION="${{ github.event.inputs.version }}"
           else
-            VERSION=$(grep -oP 'modernc.org/sqlite \Kv[0-9]+\.[0-9]+\.[0-9]+' go.mod)
+            # Extract version using awk
+            VERSION=$(grep 'modernc.org/sqlite' go.mod | awk '{print $2}')
           fi
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "Version: ${VERSION}"
@@ -53,7 +54,7 @@ jobs:
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git tag -a "${{ steps.version.outputs.version }}" -m "Release ${{ steps.version.outputs.version }}"
           
-          # Only push tags in GitHub Actions environment, not in local testing
+          # Push tags in GitHub Actions environment
           if [ -n "$GITHUB_ACTIONS" ]; then
             git push origin "${{ steps.version.outputs.version }}"
             echo "Created and pushed tag ${{ steps.version.outputs.version }}"
@@ -66,7 +67,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Only create release in GitHub Actions environment, not in local testing
+          # Create release in GitHub Actions environment
           if [ -n "$GITHUB_ACTIONS" ]; then
             gh release create "${{ steps.version.outputs.version }}" \
               --title "Release ${{ steps.version.outputs.version }}" \

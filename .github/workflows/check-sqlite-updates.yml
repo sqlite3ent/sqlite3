@@ -56,7 +56,7 @@ jobs:
           git add example/go.mod example/go.sum
           if ! git diff --staged --quiet; then
             git commit -m "chore(example): update sqlite3 to ${{ steps.version.outputs.version }}"
-            # Only push in GitHub Actions environment, not in local testing
+            # Push changes in GitHub Actions environment
             if [ -n "$GITHUB_ACTIONS" ]; then
               git push
             else
