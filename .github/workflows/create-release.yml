@@ -52,15 +52,26 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git tag -a "${{ steps.version.outputs.version }}" -m "Release ${{ steps.version.outputs.version }}"
-          git push origin "${{ steps.version.outputs.version }}"
-          echo "Created and pushed tag ${{ steps.version.outputs.version }}"
+          
+          # Only push tags in GitHub Actions environment, not in local testing
+          if [ -n "$GITHUB_ACTIONS" ]; then
+            git push origin "${{ steps.version.outputs.version }}"
+            echo "Created and pushed tag ${{ steps.version.outputs.version }}"
+          else
+            echo "Created tag ${{ steps.version.outputs.version }} (skipping push in local environment)"
+          fi
 
       - name: Create Release
         if: steps.check_tag.outputs.exists == 'false'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "${{ steps.version.outputs.version }}" \
-            --title "Release ${{ steps.version.outputs.version }}" \
-            --notes "Release ${{ steps.version.outputs.version }}"
-          echo "Created release ${{ steps.version.outputs.version }}"
+          # Only create release in GitHub Actions environment, not in local testing
+          if [ -n "$GITHUB_ACTIONS" ]; then
+            gh release create "${{ steps.version.outputs.version }}" \
+              --title "Release ${{ steps.version.outputs.version }}" \
+              --notes "Release ${{ steps.version.outputs.version }}"
+            echo "Created release ${{ steps.version.outputs.version }}"
+          else
+            echo "Skipping release creation in local environment"
+          fi

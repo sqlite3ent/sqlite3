@@ -39,21 +39,12 @@ jobs:
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "Version to use: ${VERSION}"
 
-      - name: Update version.go
+      - name: Update version information
         run: |
           VERSION=$(echo "${{ steps.version.outputs.version }}" | sed 's/^v//')
-          sed -i "s|Version = \".*\"|Version = \"${VERSION}\"|" version.go
-          
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          
-          git add version.go
-          if ! git diff --staged --quiet; then
-            git commit -m "chore: update version to ${VERSION}"
-            git push
-          else
-            echo "No changes in version.go"
-          fi
+          echo "Version to use: ${VERSION}"
+          # Skip version.go update as the file was removed in previous versions
+          echo "Skipping version.go update (file removed in previous versions)"
 
       - name: Update example dependencies
         run: |
@@ -65,7 +56,12 @@ jobs:
           git add example/go.mod example/go.sum
           if ! git diff --staged --quiet; then
             git commit -m "chore(example): update sqlite3 to ${{ steps.version.outputs.version }}"
-            git push
+            # Only push in GitHub Actions environment, not in local testing
+            if [ -n "$GITHUB_ACTIONS" ]; then
+              git push
+            else
+              echo "Skipping git push in local environment"
+            fi
           else
             echo "No changes in example dependencies"
           fi
