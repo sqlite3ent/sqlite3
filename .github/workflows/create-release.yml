@@ -30,7 +30,8 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             VERSION="${{ github.event.inputs.version }}"
           else
-            VERSION=$(grep 'modernc.org/sqlite' go.mod | awk '{print $2}')
+            # Extract version correctly from go.mod
+            VERSION=$(grep 'modernc.org/sqlite' go.mod | awk '{print $3}')
           fi
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "Version: ${VERSION}"
