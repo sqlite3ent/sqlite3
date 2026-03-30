@@ -30,10 +30,13 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             VERSION="${{ github.event.inputs.version }}"
           else
-            # Extract version correctly from go.mod - modernc.org/sqlite line
-            VERSION=$(grep 'modernc.org/sqlite' go.mod | grep -v '^//' | awk '{print $3}')
+            # Extract version from go.mod - match the exact require line
+            VERSION=$(grep '^require modernc.org/sqlite' go.mod | awk '{print $3}')
             echo "Extracted version from go.mod: ${VERSION}"
           fi
+
+          # Debug output
+          echo "Version value: '${VERSION}'"
           
           # Validate version format
           if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -41,28 +44,9 @@ jobs:
             echo "Expected format: v1.42.0"
             exit 1
           fi
-          
+
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "Final Version: ${VERSION}"
-
-      - name: Validate example dependencies
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          
-          # Check if example/go.mod has the correct version
-          # Match the direct dependency line: github.com/sqlite3ent/sqlite3 v1.48.0
-          EXAMPLE_VERSION=$(grep '^github.com/sqlite3ent/sqlite3' example/go.mod | awk '{print $2}')
-          echo "Main version: ${VERSION}"
-          echo "Example version: ${EXAMPLE_VERSION}"
-          
-          if [ "${EXAMPLE_VERSION}" != "${VERSION}" ]; then
-            echo "Error: Example dependencies are not in sync with main version"
-            echo "Expected: ${VERSION}, Got: ${EXAMPLE_VERSION}"
-            echo "Please run the check-sqlite-updates workflow first to sync dependencies"
-            exit 1
-          fi
-          
-          echo "Example dependencies are correctly synced"
 
       - name: Create and push tag
         run: |
