@@ -50,7 +50,8 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           
           # Check if example/go.mod has the correct version
-          EXAMPLE_VERSION=$(grep 'github.com/sqlite3ent/sqlite3' example/go.mod | awk '{print $2}')
+          # Match the direct dependency line: github.com/sqlite3ent/sqlite3 v1.48.0
+          EXAMPLE_VERSION=$(grep '^github.com/sqlite3ent/sqlite3' example/go.mod | awk '{print $2}')
           echo "Main version: ${VERSION}"
           echo "Example version: ${EXAMPLE_VERSION}"
           
