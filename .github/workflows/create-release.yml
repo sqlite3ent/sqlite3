@@ -30,38 +30,92 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             VERSION="${{ github.event.inputs.version }}"
           else
-            # Extract version correctly from go.mod
-            VERSION=$(grep 'modernc.org/sqlite' go.mod | awk '{print $3}')
+            # Extract version correctly from go.mod - modernc.org/sqlite line
+            VERSION=$(grep 'modernc.org/sqlite' go.mod | grep -v '^//' | awk '{print $3}')
+            echo "Extracted version from go.mod: ${VERSION}"
           fi
+          
+          # Validate version format
+          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: Invalid version format: ${VERSION}"
+            echo "Expected format: v1.42.0"
+            exit 1
+          fi
+          
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "Version: ${VERSION}"
+          echo "Final Version: ${VERSION}"
+
+      - name: Validate example dependencies
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          
+          # Check if example/go.mod has the correct version
+          EXAMPLE_VERSION=$(grep 'github.com/sqlite3ent/sqlite3' example/go.mod | awk '{print $2}')
+          echo "Main version: ${VERSION}"
+          echo "Example version: ${EXAMPLE_VERSION}"
+          
+          if [ "${EXAMPLE_VERSION}" != "${VERSION}" ]; then
+            echo "Error: Example dependencies are not in sync with main version"
+            echo "Expected: ${VERSION}, Got: ${EXAMPLE_VERSION}"
+            echo "Please run the check-sqlite-updates workflow first to sync dependencies"
+            exit 1
+          fi
+          
+          echo "Example dependencies are correctly synced"
 
       - name: Create and push tag
         run: |
+          VERSION="${{ steps.version.outputs.version }}"
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           
           # Delete existing tag if it exists
-          if git rev-parse --verify "refs/tags/${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
-            echo "Tag ${{ steps.version.outputs.version }} already exists, deleting..."
-            git tag -d "${{ steps.version.outputs.version }}"
-            git push origin --delete "${{ steps.version.outputs.version }}"
+          if git rev-parse --verify "refs/tags/${VERSION}" >/dev/null 2>&1; then
+            echo "Tag ${VERSION} already exists, deleting..."
+            git tag -d "${VERSION}"
+            git push origin --delete "${VERSION}" || true
           fi
           
           # Create and push new tag
-          git tag -a "${{ steps.version.outputs.version }}" -m "Release ${{ steps.version.outputs.version }}"
-          git push origin "${{ steps.version.outputs.version }}"
-          echo "Created and pushed tag ${{ steps.version.outputs.version }}"
+          git tag -a "${VERSION}" -m "Release ${VERSION}"
+          git push origin "${VERSION}"
+          echo "Created and pushed tag ${VERSION}"
 
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Delete existing release if it exists
-          gh release delete "${{ steps.version.outputs.version }}" --yes || true
+          VERSION="${{ steps.version.outputs.version }}"
           
-          # Create new release
-          gh release create "${{ steps.version.outputs.version }}" \
-            --title "Release ${{ steps.version.outputs.version }}" \
-            --notes "Release ${{ steps.version.outputs.version }}"
-          echo "Created release ${{ steps.version.outputs.version }}"
+          # Delete existing release if it exists
+          gh release delete "${VERSION}" --yes || true
+          
+          # Get the commit message for this version
+          COMMIT_MSG=$(git log -1 --pretty=format:"%s")
+          
+          # Create detailed release notes
+          cat > release_notes.md << EOF
+          # Release ${VERSION}
+
+          This release updates the embedded SQLite library from modernc.org/sqlite.
+
+          ## Changes
+          - Updated modernc.org/sqlite to ${VERSION}
+          - Updated example dependencies
+          
+          ## Installation
+          \`\`\`bash
+          go get github.com/sqlite3ent/sqlite3@${VERSION}
+          \`\`\`
+          
+          ## What's Changed
+          ${COMMIT_MSG}
+          
+          Full Changelog: https://github.com/${{ github.repository }}/commits/${VERSION}
+          EOF
+          
+          # Create new release with detailed notes
+          gh release create "${VERSION}" \
+            --title "Release ${VERSION}" \
+            --notes-file release_notes.md
+          echo "Created release ${VERSION}"
