@@ -80,8 +80,6 @@ jobs:
           
           # Create detailed release notes
           cat > release_notes.md << EOF
-          # Release ${VERSION}
-
           This release updates the embedded SQLite library from modernc.org/sqlite.
 
           ## Changes
