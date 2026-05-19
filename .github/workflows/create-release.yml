@@ -80,6 +80,8 @@ jobs:
           
           # Create detailed release notes
           cat > release_notes.md << EOF
+          # sqlite3 ${VERSION}
+
           This release updates the embedded SQLite library from modernc.org/sqlite.
 
           ## Changes
@@ -99,6 +101,6 @@ jobs:
           
           # Create new release with detailed notes
           gh release create "${VERSION}" \
-            --title "Release ${VERSION}" \
+            --title "${VERSION}" \
             --notes-file release_notes.md
           echo "Created release ${VERSION}"
